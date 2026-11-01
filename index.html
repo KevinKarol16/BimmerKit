@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>BimmerKit F36</title>
+<style>
+:root{--bg:#0d0f13;--card:#171a21;--line:#262a33;--tx:#e8eaf0;--mut:#8a90a0;--acc:#1c69d4;--ok:#2fb36d;--warn:#e0a020;--bad:#e5484d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px}
+header h1{font-size:19px;margin:0;letter-spacing:.3px}
+header h1 b{color:var(--acc)}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--line);color:var(--mut)}
+.pill.on{background:#123d27;color:#6fe0a0}
+nav{display:flex;gap:6px;overflow-x:auto;padding:4px 12px 10px;position:sticky;top:0;background:var(--bg);z-index:5}
+nav button{flex:0 0 auto;background:var(--card);border:1px solid var(--line);color:var(--mut);padding:8px 13px;border-radius:10px;font-size:14px}
+nav button.act{color:#fff;border-color:var(--acc);background:#13223a}
+main{padding:0 12px 90px}
+section{display:none}section.act{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px;color:#cfd3dc}
+.btn{display:block;width:100%;padding:13px;border:0;border-radius:11px;background:var(--acc);color:#fff;font-size:15px;font-weight:600;margin:8px 0}
+.btn.sec{background:var(--line);color:var(--tx)}
+.btn.bad{background:#5a1d20;color:#ffb4b6}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);gap:10px}
+.kv:last-child{border:0}.kv span:first-child{color:var(--mut)}.kv span:last-child{text-align:right;word-break:break-all}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.g .n{font-size:12px;color:var(--mut)}.g .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}.g .u{font-size:13px;color:var(--mut);margin-left:4px}
+.dtc{padding:9px 0;border-bottom:1px solid var(--line)}.dtc:last-child{border:0}
+.dtc code{font-size:16px;font-weight:700}.dtc a{color:#7fb2ff;font-size:13px;margin-left:8px}
+.tag{font-size:11px;padding:2px 7px;border-radius:6px;margin-left:6px;background:var(--line)}
+.tag.a{background:#5a1d20;color:#ffb4b6}.tag.c{background:#4a3a10;color:#ffd77a}
+.mod h3{font-size:14px;margin:0;display:flex;justify-content:space-between;align-items:center}
+.mut{color:var(--mut);font-size:13px}
+input,select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0f1217;color:var(--tx);font:15px ui-monospace,Menlo,monospace;margin:4px 0}
+label{font-size:13px;color:var(--mut)}
+pre{white-space:pre-wrap;word-break:break-all;background:#0f1217;border-radius:10px;padding:10px;font:12px/1.4 ui-monospace,Menlo,monospace;max-height:340px;overflow:auto;margin:6px 0}
+.warn{border-color:#5a4612;background:#1d1a10}
+#busy{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));background:#13223a;border:1px solid var(--acc);border-radius:12px;padding:11px 14px;display:none;font-size:14px;z-index:20}
+#toast{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));background:#3a1518;border:1px solid var(--bad);border-radius:12px;padding:11px 14px;display:none;z-index:30}
+#toast.ok{background:#11301f;border-color:var(--ok)}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
+#modal .card{max-width:420px;width:100%}
+</style>
+</head>
+<body>
+<header><h1>Bimmer<b>Kit</b> F36</h1><span id="conn" class="pill">Neconectat</span></header>
+<nav id="tabs">
+  <button data-t="con" class="act">Conectare</button>
+  <button data-t="live">Live</button>
+  <button data-t="err">Erori</button>
+  <button data-t="mod">Module</button>
+  <button data-t="adv">Avansat</button>
+  <button data-t="log">Jurnal</button>
+</nav>
+<main>
+<section id="con" class="act">
+  <div class="card">
+    <h2>Adaptor vLinker BM+</h2>
+    <button class="btn" id="bConnect">Conectează prin Bluetooth</button>
+    <button class="btn sec" id="bDemo">Mod demonstrativ (fără mașină)</button>
+    <button class="btn sec" id="bDisc" disabled>Deconectează</button>
+    <p class="mut">Contact pus (sau motor pornit), adaptorul în priza OBD de sub volan. Nu împerechea adaptorul din Setări → Bluetooth, conexiunea se face doar de aici. Închide BimmerLink/BimmerCode înainte, altfel adaptorul e ocupat.</p>
+  </div>
+  <div class="card" id="infoCard" style="display:none">
+    <h2>Mașină</h2>
+    <div id="info"></div>
+  </div>
+</section>
+
+<section id="live">
+  <div class="card">
+    <h2>Rateuri pe cilindri (misfire)</h2>
+    <div class="row"><button class="btn" id="bMis">Citește</button><button class="btn sec" id="bMisW">Monitorizează</button></div>
+    <div id="mis"><p class="mut">Contoarele sunt calculate de DME în timpul mersului. 0 înseamnă normal. Valorile cresc doar dacă un cilindru are rateuri.</p></div>
+  </div>
+  <div class="row"><button class="btn" id="bLive">Pornește</button><button class="btn sec" id="bCsv">Copiază CSV</button></div>
+  <p class="mut" id="liveHz"></p>
+  <div class="grid" id="gauges"></div>
+</section>
+
+<section id="err">
+  <div class="card">
+    <h2>Motor (OBD standard)</h2>
+    <button class="btn" id="bObdDtc">Citește erori motor</button>
+    <div id="obdDtc"></div>
+    <button class="btn bad" id="bObdClr">Șterge erori motor (OBD)</button>
+  </div>
+  <div class="card">
+    <h2>Toate modulele BMW</h2>
+    <button class="btn" id="bAllDtc">Citește erori din toate modulele</button>
+    <label><input type="checkbox" id="fullDtc" style="width:auto"> scanare completă a adreselor (1–2 min)</label>
+    <div id="allDtc"></div>
+  </div>
+</section>
+
+<section id="mod">
+  <div class="card">
+    <h2>Module (ECU)</h2>
+    <button class="btn" id="bScan">Scanează modulele tipice</button>
+    <button class="btn sec" id="bScanFull">Scanare completă 0x00–0xFF</button>
+    <div id="mods"></div>
+  </div>
+</section>
+
+<section id="adv">
+  <div class="card">
+    <h2>Citire DID (UDS 0x22)</h2>
+    <div class="row"><div><label>ECU</label><input id="dEcu" value="0x12"></div><div><label>DID</label><input id="dDid" value="0xF190"></div></div>
+    <button class="btn" id="bDidRead">Citește</button>
+    <pre id="dOut">-</pre>
+  </div>
+  <div class="card">
+    <h2>Cerere UDS (doar citire: 19, 22, 3E)</h2>
+    <div class="row"><div style="flex:0 0 32%"><label>ECU</label><input id="uEcu" value="0x12"></div><div><label>Hex</label><input id="uHex" value="22F18C"></div></div>
+    <button class="btn" id="bUds">Trimite</button>
+    <pre id="uOut">-</pre>
+  </div>
+  <div class="card">
+    <label><input type="checkbox" id="dbg" style="width:auto"> Jurnal detaliat (comenzi ELM)</label>
+  </div>
+</section>
+
+<section id="log">
+  <div class="row"><button class="btn sec" id="bLogCopy">Copiază jurnalul</button><button class="btn sec" id="bLogClr">Golește</button></div>
+  <pre id="logOut" style="max-height:none"></pre>
+</section>
+</main>
+<div id="busy"></div><div id="toast"></div>
+<div id="modal"><div class="card"><h2 id="mTitle"></h2><p id="mText" class="mut"></p><input id="mInput" style="display:none"><div class="row"><button class="btn sec" id="mNo">Anulează</button><button class="btn bad" id="mYes">Confirmă</button></div></div></div>
+
+<script>
+"use strict";
+// ============================================================ utilitare
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const h2 = n => n.toString(16).padStart(2, "0").toUpperCase();
+const hex = b => Array.from(b, h2).join("");
+const fromHex = s => { s = s.replace(/\s/g, ""); if (!/^([0-9a-fA-F]{2})*$/.test(s)) throw new ElmError("Hex invalid: " + s); const a = new Uint8Array(s.length / 2); for (let i = 0; i < a.length; i++) a[i] = parseInt(s.substr(i * 2, 2), 16); return a; };
+const cat = (...a) => { const r = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let o = 0; for (const x of a) { r.set(x, o); o += x.length; } return r; };
+const pad8 = b => { const r = new Uint8Array(Math.max(8, b.length)); r.set(b); return r; };
+const eqb = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+const num = s => { const v = parseInt(String(s).trim(), String(s).trim().toLowerCase().startsWith("0x") ? 16 : 10); if (isNaN(v)) throw new ElmError("Număr invalid: " + s); return v; };
+const ascii = b => Array.from(b, c => c >= 32 && c < 127 ? String.fromCharCode(c) : "").join("");
+const HEX_LINE = /^(?:[0-9A-F]{2})+$/;
+
+class ElmError extends Error {}
+class NoResponse extends ElmError {}
+const NRC = {0x10:"general reject",0x11:"serviciu nesuportat",0x12:"sub-funcție nesuportată",0x13:"lungime greșită",0x22:"condiții neîndeplinite",0x31:"în afara intervalului",0x33:"acces securizat refuzat",0x35:"cheie invalidă",0x78:"răspuns în așteptare",0x7E:"nesuportat în sesiunea curentă",0x7F:"serviciu nesuportat în sesiune"};
+class UdsNegative extends ElmError { constructor(sid, nrc) { super(`serviciu 0x${h2(sid)}: NRC 0x${h2(nrc)} (${NRC[nrc] || "necunoscut"})`); this.sid = sid; this.nrc = nrc; } }
+
+// ============================================================ transport BLE
+// UUID-uri de serviciu folosite de adaptoarele OBD BLE (vLinker, Vgate, Veepeak, etc.)
+const BLE_SERVICES = [0xfff0, 0xffe0, 0x18f0, 0xffb0, 0xae30, 0xfee7, "e7810a71-73ae-499d-8c15-faa9aef0c3f2", "0000ffe5-0000-1000-8000-00805f9b34fb"];
+
+class BleTransport {
+  async connect() {
+    if (!navigator.bluetooth) throw new ElmError("Browserul nu are Bluetooth. Pe iPhone deschide pagina în aplicația gratuită Bluefy (App Store).");
+    this.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BLE_SERVICES });
+    this.dev.addEventListener("gattserverdisconnected", () => onDisconnected());
+    const server = await this.dev.gatt.connect();
+    let services = [];
+    try { services = await server.getPrimaryServices(); } catch (e) {}
+    if (!services.length) for (const u of BLE_SERVICES) { try { services.push(await server.getPrimaryService(u)); } catch (e) {} }
+    for (const s of services) {
+      let chars; try { chars = await s.getCharacteristics(); } catch (e) { continue; }
+      const n = chars.find(c => c.properties.notify || c.properties.indicate);
+      const w = chars.find(c => c.properties.write || c.properties.writeWithoutResponse);
+      if (n && w) { this.n = n; this.w = w; break; }
+    }
+    if (!this.n) throw new ElmError("Nu am găsit canalul de date al adaptorului (ai ales dispozitivul corect?).");
+    this.buf = ""; this.waiter = null; this.dec = new TextDecoder();
+    this.n.addEventListener("characteristicvaluechanged", e => {
+      this.buf += this.dec.decode(e.target.value);
+      if (this.waiter && this.buf.includes(">")) this.waiter();
+    });
+    await this.n.startNotifications();
+    return this.dev.name || "adaptor BLE";
+  }
+  async write(str) {
+    this.buf = "";
+    const data = new TextEncoder().encode(str);
+    for (let i = 0; i < data.length; i += 20) {
+      const ch = data.slice(i, i + 20);
+      if (this.w.properties.writeWithoutResponse && this.w.writeValueWithoutResponse) await this.w.writeValueWithoutResponse(ch);
+      else if (this.w.writeValueWithResponse) await this.w.writeValueWithResponse(ch);
+      else await this.w.writeValue(ch);
+    }
+  }
+  readUntilPrompt(timeout) {
+    return new Promise(res => {
+      let t;
+      const done = () => { clearTimeout(t); this.waiter = null; const b = this.buf; this.buf = ""; res(b); };
+      if (this.buf.includes(">")) return done();
+      t = setTimeout(done, timeout);
+      this.waiter = done;
+    });
+  }
+  close() { try { this.dev.gatt.disconnect(); } catch (e) {} }
+}
+
+// ============================================================ ELM327 + ISO-TP + UDS
+class Elm {
+  constructor(t) { this.t = t; this.useCount = true; this.mode = null; this.cra = null; this.debug = false; }
+
+  async cmd(c, timeout = 2000) {
+    await this.t.write(c + "\r");
+    const raw = await this.t.readUntilPrompt(timeout);
+    if (this.debug) log(`>> ${c}\n<< ${JSON.stringify(raw)}`);
+    const norm = s => s.toUpperCase().replace(/ /g, "");
+    return raw.replace(/>/g, "").split(/[\r\n]+/).map(l => l.trim())
+      .filter(l => l && norm(l) !== norm(c) && !l.startsWith("SEARCHING"));
+  }
+  static check(lines) {
+    for (const l of lines) {
+      const u = l.toUpperCase();
+      if (/^(UNABLE TO CONNECT|CAN ERROR|BUS ERROR|BUFFER FULL|FB ERROR|BUS BUSY)/.test(u)) throw new ElmError(l);
+      if (u === "?") throw new ElmError("?");
+    }
+  }
+  async init() {
+    await this.t.write("\r"); await this.t.readUntilPrompt(500);
+    const lines = await this.cmd("ATZ", 5000);
+    await sleep(300);
+    const ver = lines.find(l => /ELM|STN|VLINK/i.test(l)) || "adaptor necunoscut";
+    for (const c of ["ATE0", "ATL0", "ATS0", "ATH0", "ATAT0", "ATST64", "ATSP6", "ATCAF1"]) await this.cmd(c);
+    this.mode = this.cra = null;
+    return ver;
+  }
+  async voltage() { return (await this.cmd("ATRV"))[0] || "?"; }
+  async setTimeoutMs(ms) { await this.cmd("ATST" + h2(Math.min(255, Math.max(1, ms >> 2)))); }
+
+  // ---- OBD-II
+  async obdMode() {
+    if (this.mode !== "obd") { for (const c of ["ATCAF1", "ATSH7DF", "ATR1", "ATAR"]) await this.cmd(c); this.mode = "obd"; this.cra = null; }
+  }
+  async obd(req, timeout = 4000) {
+    await this.obdMode();
+    const lines = await this.cmd(req, timeout);
+    Elm.check(lines);
+    const sid = parseInt(req.slice(0, 2), 16) + 0x40;
+    let joined = ""; const cands = [];
+    for (const l of lines) {
+      const s = l.replace(/ /g, "").toUpperCase();
+      const m = s.match(/^[0-9A-F]:(.*)$/);
+      if (m) joined += m[1];
+      else if (/^[0-9A-F]{3}$/.test(s)) continue;
+      else if (HEX_LINE.test(s)) cands.push(s);
+    }
+    if (joined) cands.unshift(joined);
+    for (const c of cands) {
+      if (c.length % 2) continue;
+      const b = fromHex(c);
+      if (b.length && b[0] === sid) return b;
+    }
+    return null;
+  }
+
+  // ---- UDS BMW (D-CAN, adresare extinsă: 6F1 -> 6xx, primul octet = adresa)
+  async bmw(ecu) {
+    if (this.mode !== "bmw") { for (const c of ["ATCAF0", "ATSH6F1", "ATR1"]) await this.cmd(c); this.mode = "bmw"; this.cra = null; }
+    if (this.cra !== ecu) { await this.cmd("ATCRA" + (0x600 + ecu).toString(16).toUpperCase()); this.cra = ecu; }
+  }
+  static frames(lines) {
+    const out = [];
+    for (const l of lines) {
+      const s = l.replace(/ /g, "").toUpperCase();
+      if (HEX_LINE.test(s)) { const b = fromHex(s); if (b.length >= 2 && b[0] === 0xF1) out.push(b); }
+    }
+    return out;
+  }
+  cnt() { return this.useCount ? "1" : ""; }
+  async send(ecu, p, timeout) {
+    try { return await this.sendIsotp(ecu, p, timeout); }
+    catch (e) {
+      if (e.message === "?" && this.useCount) { this.useCount = false; return await this.sendIsotp(ecu, p, timeout); }
+      throw e;
+    }
+  }
+  async sendIsotp(ecu, p, timeout) {
+    if (p.length <= 6) {
+      const lines = await this.cmd(hex(pad8(cat([ecu, p.length], p))) + this.cnt(), timeout);
+      Elm.check(lines); return lines;
+    }
+    const total = p.length;
+    let lines = await this.cmd(hex(cat([ecu, 0x10 | (total >> 8), total & 0xFF], p.slice(0, 5))) + this.cnt(), timeout);
+    Elm.check(lines);
+    const fc = Elm.frames(lines).find(f => (f[1] >> 4) === 3);
+    if (!fc) throw new NoResponse("Modulul nu a trimis flow-control");
+    const stmin = fc.length > 3 ? fc[3] : 0;
+    const rest = p.slice(5), chunks = [];
+    for (let i = 0; i < rest.length; i += 6) chunks.push(rest.slice(i, i + 6));
+    const cf = i => hex(pad8(cat([ecu, 0x20 | ((i + 1) & 0xF)], chunks[i])));
+    if (chunks.length > 1) {
+      await this.cmd("ATR0");
+      try {
+        for (let i = 0; i < chunks.length - 1; i++) { await this.cmd(cf(i)); if (stmin > 0 && stmin <= 127) await sleep(stmin); }
+      } finally { await this.cmd("ATR1"); }
+    }
+    lines = await this.cmd(cf(chunks.length - 1) + this.cnt(), timeout);
+    Elm.check(lines); return lines;
+  }
+  async assemble(ecu, frames, timeout) {
+    const f = frames[0], pci = f[1] >> 4;
+    if (pci === 0) return f.slice(2, 2 + (f[1] & 0xF));
+    if (pci === 1) {
+      const total = ((f[1] & 0xF) << 8) | f[2];
+      let buf = f.slice(3);
+      const lines = await this.cmd(hex(new Uint8Array([ecu, 0x30, 0, 0, 0, 0, 0, 0])), timeout);
+      for (const x of Elm.frames(lines)) if ((x[1] >> 4) === 2) buf = cat(buf, x.slice(2));
+      if (buf.length < total) throw new ElmError(`Răspuns multi-frame incomplet (${buf.length}/${total})`);
+      return buf.slice(0, total);
+    }
+    throw new ElmError("Cadru ISO-TP neașteptat");
+  }
+  async waitPending(ecu, timeout) {
+    await this.t.write("ATMA\r");
+    let raw = await this.t.readUntilPrompt(Math.max(timeout, 5000));
+    await this.t.write("\r");
+    raw += await this.t.readUntilPrompt(1000);
+    const frames = Elm.frames(raw.replace(/>/g, "").split(/[\r\n]+/))
+      .filter(f => !((f[1] >> 4) === 0 && f.length > 4 && f[2] === 0x7F && f[4] === 0x78));
+    if (!frames.length) throw new NoResponse("Modulul încă e ocupat (response pending)");
+    return this.assemble(ecu, frames, timeout);
+  }
+  async uds(ecu, payload, timeout = 3000) {
+    payload = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
+    await this.bmw(ecu);
+    const lines = await this.send(ecu, payload, timeout);
+    const frames = Elm.frames(lines);
+    if (!frames.length) throw new NoResponse(`Modulul 0x${h2(ecu)} nu răspunde`);
+    let d = await this.assemble(ecu, frames, timeout);
+    if (d.length >= 3 && d[0] === 0x7F && d[2] === 0x78) d = await this.waitPending(ecu, timeout);
+    if (d.length >= 3 && d[0] === 0x7F) throw new UdsNegative(d[1], d[2]);
+    if (!d.length || d[0] !== payload[0] + 0x40) throw new ElmError("Răspuns neașteptat: " + hex(d));
+    return d;
+  }
+}
+
+// ============================================================ OBD-II
+const PIDS = {
+  0x0C: ["Turație", "rpm", 2, d => (d[0] * 256 + d[1]) / 4, 0],
+  0x0D: ["Viteză", "km/h", 1, d => d[0], 0],
+  0x04: ["Sarcină motor", "%", 1, d => d[0] * 100 / 255, 0],
+  0x11: ["Clapetă", "%", 1, d => d[0] * 100 / 255, 0],
+  0x05: ["Lichid răcire", "°C", 1, d => d[0] - 40, 0],
+  0x5C: ["Ulei", "°C", 1, d => d[0] - 40, 0],
+  0x0F: ["Aer admisie", "°C", 1, d => d[0] - 40, 0],
+  0x46: ["Temp. exterioară", "°C", 1, d => d[0] - 40, 0],
+  0x0B: ["Presiune admisie", "kPa", 1, d => d[0], 0],
+  0x33: ["Presiune atmosf.", "kPa", 1, d => d[0], 0],
+  0x10: ["Debit aer MAF", "g/s", 2, d => (d[0] * 256 + d[1]) / 100, 1],
+  0x0E: ["Avans aprindere", "°", 1, d => d[0] / 2 - 64, 1],
+  0x06: ["Corecție scurtă", "%", 1, d => d[0] * 100 / 128 - 100, 1],
+  0x07: ["Corecție lungă", "%", 1, d => d[0] * 100 / 128 - 100, 1],
+  0x23: ["Presiune rampă", "kPa", 2, d => (d[0] * 256 + d[1]) * 10, 0],
+  0x42: ["Tensiune", "V", 2, d => (d[0] * 256 + d[1]) / 1000, 2],
+  0x2F: ["Combustibil", "%", 1, d => d[0] * 100 / 255, 0],
+  0x5E: ["Consum", "L/h", 2, d => (d[0] * 256 + d[1]) / 20, 1],
+  0x1F: ["Timp de la pornire", "s", 2, d => d[0] * 256 + d[1], 0],
+};
+const OBD = {
+  async supported(elm) {
+    const sup = new Set();
+    for (const base of [0x00, 0x20, 0x40, 0x60]) {
+      const r = await elm.obd("01" + h2(base));
+      if (!r || r.length < 6) break;
+      const m = ((r[2] << 24) >>> 0) + (r[3] << 16) + (r[4] << 8) + r[5];
+      for (let i = 0; i < 32; i++) if (m & (2 ** (31 - i))) sup.add(base + i + 1);
+      if (!(m & 1)) break;
+    }
+    return sup;
+  },
+  async pid(elm, pid) {
+    const [, , n, f] = PIDS[pid];
+    const r = await elm.obd("01" + h2(pid));
+    if (!r || r.length < 2 + n) return null;
+    return f(r.slice(2, 2 + n));
+  },
+  async vin(elm) {
+    const r = await elm.obd("0902", 5000);
+    return r && r.length > 3 ? ascii(r.slice(3)) : null;
+  },
+  code(b0, b1) { return "PCBU"[b0 >> 6] + ((b0 >> 4) & 3) + (b0 & 0xF).toString(16).toUpperCase() + h2(b1); },
+  async dtcs(elm, mode) {
+    const r = await elm.obd(h2(mode));
+    if (!r) return [];
+    const b = r.slice(2), out = [];
+    for (let i = 0; i + 1 < b.length; i += 2) if (b[i] || b[i + 1]) out.push(OBD.code(b[i], b[i + 1]));
+    return out;
+  },
+  async clear(elm) { return (await elm.obd("04")) !== null; },
+  // Mode 06: contoare rateuri calculate de DME. MID A1 = total, A2..AD = cilindrii 1..12.
+  // TID 0C = cursa curentă / ultima, TID 0B = medie (EWMA) pe ultimele 10 curse.
+  async misfireTest(elm, mid) {
+    const r = await elm.obd("06" + h2(mid));
+    if (!r) return null;
+    const o = { cur: null, avg: null };
+    for (let k = 1; k + 9 <= r.length; k += 9) {
+      if (r[k] !== mid) continue;
+      const v = (r[k + 3] << 8) | r[k + 4];
+      if (r[k + 1] === 0x0C) o.cur = v; else if (r[k + 1] === 0x0B) o.avg = v;
+    }
+    return o;
+  },
+  async misfires(elm) {
+    const s = await elm.obd("06A0");
+    if (!s || s.length < 6) return null;
+    const m = ((s[2] << 24) >>> 0) + (s[3] << 16) + (s[4] << 8) + s[5];
+    const has = mid => !!(m & 2 ** (31 - (mid - 0xA1)));
+    const cyl = [];
+    for (let mid = 0xA2; mid <= 0xAD; mid++) if (has(mid)) { const t = await OBD.misfireTest(elm, mid); if (t) cyl.push({ n: mid - 0xA1, ...t }); }
+    const total = has(0xA1) ? await OBD.misfireTest(elm, 0xA1) : null;
+    return cyl.length || total ? { cyl, total } : null;
+  },
+};
+
+// ============================================================ BMW
+// Adrese tipice F-series. Scanarea completă arată ce există de fapt pe mașina ta.
+const ECU_NAMES = {0x01:"ACSM (airbag)",0x10:"ZGM (gateway)",0x12:"DME (motor)",0x18:"EGS (cutie automată)",0x29:"DSC (frânare/stabilitate)",0x30:"EPS (servodirecție)",0x40:"FEM (electronică față)",0x60:"KOMBI (bord)",0x78:"IHKA (climatizare)"};
+const ecuName = a => ECU_NAMES[a] || "Modul 0x" + h2(a);
+const IDENT = [[0xF190, "VIN"], [0xF187, "Cod piesă"], [0xF18C, "Serie"], [0xF189, "Versiune software"]];
+const BMW = {
+  async readDid(elm, ecu, did) { return (await elm.uds(ecu, [0x22, did >> 8, did & 0xFF])).slice(3); },
+  async ident(elm, ecu) {
+    const out = {};
+    for (const [did, label] of IDENT) {
+      try { const v = await BMW.readDid(elm, ecu, did); const t = ascii(v).trim(); out[label] = t.length === v.length && t ? t : hex(v); } catch (e) {}
+    }
+    return out;
+  },
+  async scan(elm, addrs, progress) {
+    const found = [];
+    await elm.setTimeoutMs(100);
+    try {
+      for (const a of addrs) {
+        if (progress) progress(a);
+        try { await elm.uds(a, [0x3E, 0x00], 800); found.push(a); }
+        catch (e) { if (e instanceof UdsNegative) found.push(a); else if (!(e instanceof ElmError)) throw e; }
+      }
+    } finally { await elm.setTimeoutMs(400); }
+    return found;
+  },
+  async dtcs(elm, ecu) {
+    const r = await elm.uds(ecu, [0x19, 0x02, 0xFF]);
+    const recs = r.slice(3), out = [];
+    for (let i = 0; i + 3 < recs.length; i += 4) {
+      const st = recs[i + 3];
+      out.push({ code: hex(recs.slice(i, i + 3)), st, active: !!(st & 1), pending: !!(st & 4), confirmed: !!(st & 8) });
+    }
+    return out;
+  },
+  async clear(elm, ecu) { await elm.uds(ecu, [0x14, 0xFF, 0xFF, 0xFF], 5000); },
+};
+
+// ============================================================ adaptor simulat (mod demo / teste)
+class MockTransport {
+  constructor() {
+    this.out = ""; this.caf = true; this.cra = null; this.pending = null; this.txbuf = []; this.txlen = 0;
+    this.obdv = {0x04:[0x4D],0x05:[0x5A],0x0C:[0x0D,0x7A],0x0D:[0],0x0F:[0x3C],0x11:[0x10],0x2F:[0x80],0x42:[0x37,0xD8],0x46:[0x32],0x5C:[0x6E],0x0B:[0x24],0x10:[0x01,0x40],0x0E:[0x90]};
+    this.dids = {0xF190: new TextEncoder().encode("WBA4D31060G000001"), 0xF187: fromHex("8631234"+"5"), 0xF189: fromHex("010203"), 0x3000: fromHex("0102030405060708")};
+    this.ecus = new Set([0x12, 0x18, 0x29, 0x40, 0x60]);
+    this.dtc = {0x12: [0x48,0x0A,0x00,0x2F, 0xA3,0x1B,0x00,0x08], 0x40: [0x80,0x41,0x81,0x09]};
+  }
+  async write(s) { await sleep(3); this.out = this.handle(s.trim().toUpperCase().replace(/ /g, "")); }
+  async readUntilPrompt() { await sleep(3); const o = this.out; this.out = ""; return o + "\r\r>"; }
+  close() {}
+  mask(base) {
+    let m = 0n; const ps = Object.keys(this.obdv).map(Number);
+    for (const p of ps) if (p > base && p <= base + 32) m |= 1n << BigInt(32 - (p - base));
+    if (ps.some(p => p > base + 32)) m |= 1n;
+    return m.toString(16).padStart(8, "0").toUpperCase();
+  }
+  handle(c) {
+    if (c.startsWith("AT")) {
+      if (c === "ATZ") return "\r\rELM327 v2.2 (vLinker BM+ demo)";
+      if (c === "ATRV") return "12.6V";
+      if (c.startsWith("ATCAF")) this.caf = c.endsWith("1");
+      if (c.startsWith("ATCRA")) this.cra = parseInt(c.slice(5), 16);
+      return "OK";
+    }
+    return this.caf ? this.obd(c) : this.raw(c);
+  }
+  obd(c) {
+    if (["0100", "0120", "0140", "0160"].includes(c)) return "41" + c.slice(2) + this.mask(parseInt(c.slice(2), 16));
+    if (c.startsWith("01")) {
+      const p = parseInt(c.slice(2), 16);
+      if (this.obdv[p]) {
+        if (p === 0x0C) { const r = (780 + Math.round(Math.random() * 60)) * 4; this.obdv[0x0C] = [r >> 8, r & 0xFF]; }
+        if (p === 0x0D) this.obdv[0x0D] = [40 + Math.round(Math.random() * 10)];
+        return "41" + c.slice(2) + hex(this.obdv[p]);
+      }
+    }
+    if (c === "06A0") return "46A0F8000000";
+    if (/^06A[1-5]$/.test(c)) {
+      const mid = parseInt(c.slice(2), 16), cyl = mid - 0xA1;
+      if (cyl === 3) this.mis3 = (this.mis3 || 0) + 2;
+      const cur = mid === 0xA1 ? (this.mis3 || 0) : cyl === 3 ? this.mis3 : 0, avg = cyl === 3 ? 5 : mid === 0xA1 ? 5 : 0;
+      const rec = (tid, v) => [mid, tid, 0x24, v >> 8, v & 0xFF, 0, 0, 0xFF, 0xFF];
+      return this.multi(new Uint8Array([0x46, ...rec(0x0B, avg), ...rec(0x0C, cur)]));
+    }
+    if (c === "03") return "4302" + "0133" + "0300";
+    if (c === "07" || c === "0A") return "4" + c[1] + "00";
+    if (c === "04") return "44";
+    if (c === "0902") { const d = cat([0x49, 2, 1], this.dids[0xF190]); return `014\r0:${hex(d.slice(0, 6))}\r1:${hex(d.slice(6, 13))}\r2:${hex(d.slice(13))}`; }
+    return "NO DATA";
+  }
+  multi(d) {  // formatul ELM cu CAF1 pentru răspunsuri ISO-TP lungi
+    if (d.length <= 7) return hex(d);
+    const L = [d.length.toString(16).toUpperCase().padStart(3, "0"), "0:" + hex(d.slice(0, 6))];
+    for (let i = 6, n = 1; i < d.length; i += 7, n++) L.push((n & 0xF).toString(16).toUpperCase() + ":" + hex(d.slice(i, i + 7)));
+    return L.join("\r");
+  }
+  frames(r) {
+    if (r.length <= 6) { const f = new Uint8Array(8).fill(0xAA); f.set(cat([0xF1, r.length], r)); return [hex(f)]; }
+    const n = r.length, out = [hex(cat([0xF1, 0x10 | (n >> 8), n & 0xFF], r.slice(0, 5)))];
+    let rest = r.slice(5), i = 1; const cfs = [];
+    while (rest.length) { const f = new Uint8Array(8).fill(0xAA); f.set(cat([0xF1, 0x20 | (i & 0xF)], rest.slice(0, 6))); cfs.push(hex(f)); rest = rest.slice(6); i++; }
+    this.pending = cfs; return out;
+  }
+  raw(c) {
+    if (c.length % 2) c = c.slice(0, -1);
+    if (!c) return "";
+    const b = fromHex(c), ecu = b[0];
+    if (!this.ecus.has(ecu) || this.cra !== 0x600 + ecu) return "NO DATA";
+    const pci = b[1] >> 4;
+    if (pci === 3) { const o = this.pending; this.pending = null; return o ? o.join("\r") : "NO DATA"; }
+    if (pci === 1) { this.txbuf = Array.from(b.slice(3, 8)); this.txlen = ((b[1] & 0xF) << 8) | b[2]; return "F130000000000000"; }
+    if (pci === 2) { this.txbuf.push(...b.slice(2, 8)); return this.txbuf.length >= this.txlen ? this.respond(ecu, new Uint8Array(this.txbuf.slice(0, this.txlen))) : ""; }
+    return this.respond(ecu, b.slice(2, 2 + (b[1] & 0xF)));
+  }
+  respond(ecu, p) {
+    const s = p[0]; let r;
+    if (s === 0x3E) r = [0x7E, 0x00];
+    else if (s === 0x10) r = [0x50, 0x03, 0x00, 0x32, 0x01, 0xF4];
+    else if (s === 0x22) { const did = (p[1] << 8) | p[2]; r = this.dids[did] ? cat([0x62, p[1], p[2]], this.dids[did]) : [0x7F, 0x22, 0x31]; }
+    else if (s === 0x19) r = cat([0x59, 0x02, 0xFF], this.dtc[ecu] || []);
+    else if (s === 0x14) { this.dtc[ecu] = []; r = [0x54]; }
+    else if (s === 0x2E) { this.dids[(p[1] << 8) | p[2]] = p.slice(3); r = [0x6E, p[1], p[2]]; }
+    else r = [0x7F, s, 0x11];
+    return this.frames(new Uint8Array(r)).join("\r");
+  }
+}
+window.MockTransport = MockTransport;
+
+// ============================================================ UI
+let elm = null, busy = false, liveOn = false, csv = [];
+function log(s) { const o = $("#logOut"); o.textContent += `[${new Date().toLocaleTimeString()}] ${s}\n`; if (o.textContent.length > 200000) o.textContent = o.textContent.slice(-150000); }
+function toast(s, ok) { const t = $("#toast"); t.textContent = s; t.className = ok ? "ok" : ""; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 4500); }
+function setBusy(s) { const b = $("#busy"); b.textContent = s || ""; b.style.display = s ? "block" : "none"; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function ask(title, text, typed) {
+  return new Promise(res => {
+    $("#mTitle").textContent = title; $("#mText").textContent = text;
+    const inp = $("#mInput"); inp.style.display = typed ? "block" : "none"; inp.value = ""; inp.placeholder = typed ? `Scrie ${typed}` : "";
+    $("#modal").style.display = "flex";
+    const close = v => { $("#modal").style.display = "none"; $("#mYes").onclick = $("#mNo").onclick = null; res(v); };
+    $("#mNo").onclick = () => close(false);
+    $("#mYes").onclick = () => close(!typed || inp.value.trim() === typed);
+  });
+}
+async function run(label, fn) {
+  if (!elm) return toast("Conectează-te întâi la adaptor (tabul Conectare).");
+  if (busy) return toast("Așteaptă să se termine operația curentă.");
+  busy = true; setBusy(label + "…");
+  try { return await fn(); }
+  catch (e) { log("EROARE: " + e.message); toast(e instanceof ElmError ? e.message : "Eroare: " + e.message); }
+  finally { busy = false; setBusy(null); }
+}
+function setConn(name) {
+  $("#conn").textContent = name || "Neconectat"; $("#conn").className = "pill" + (name ? " on" : "");
+  $("#bDisc").disabled = !name; $("#bConnect").disabled = $("#bDemo").disabled = !!name;
+}
+function onDisconnected() { liveOn = false; misOn = false; elm = null; setConn(null); toast("Adaptorul s-a deconectat."); log("deconectat"); }
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("act", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("act", s.id === b.dataset.t));
+});
+
+async function connectWith(t, name) {
+  if (busy) return;
+  busy = true; setBusy("Conectare…");
+  try {
+    const label = await (t.connect ? t.connect() : name);
+    const e = new Elm(t); e.debug = $("#dbg").checked;
+    const ver = await e.init();
+    elm = e; setConn(label);
+    log("conectat: " + label + " / " + ver);
+    const volt = await e.voltage();
+    let vin = null; try { vin = await OBD.vin(e); } catch (x) { log("VIN: " + x.message); }
+    let sup = new Set(); try { sup = await OBD.supported(e); } catch (x) { log("PID: " + x.message); }
+    window._sup = sup;
+    $("#info").innerHTML = [["Adaptor", ver], ["Baterie", volt], ["VIN", vin || "indisponibil (contact pus?)"], ["Parametri OBD suportați", sup.size || "-"]]
+      .map(([k, v]) => `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join("");
+    $("#infoCard").style.display = "block";
+    buildGauges();
+    if (!sup.size && !vin) toast("Adaptorul răspunde, dar mașina nu. Pune contactul și reîncearcă.");
+    else toast("Conectat", true);
+  } catch (e) {
+    log("conectare eșuată: " + e.message);
+    if (e.name !== "NotFoundError") toast(e.message || String(e));
+    try { t.close(); } catch (x) {}
+    elm = null; setConn(null);
+  } finally { busy = false; setBusy(null); }
+}
+$("#bConnect").onclick = () => connectWith(new BleTransport());
+$("#bDemo").onclick = () => connectWith(new MockTransport(), "Demo");
+$("#bDisc").onclick = () => { liveOn = false; misOn = false; if (elm) elm.t.close(); elm = null; setConn(null); };
+$("#dbg").onchange = () => { if (elm) elm.debug = $("#dbg").checked; };
+
+// ---- Live
+const LIVE_ORDER = [0x0C, 0x0D, 0x04, 0x11, 0x05, 0x5C, 0x0F, 0x46, 0x0B, 0x10, 0x0E, 0x06, 0x07, 0x23, 0x42, 0x2F, 0x5E];
+function livePids() { const s = window._sup || new Set(); return LIVE_ORDER.filter(p => s.has(p)); }
+function buildGauges() {
+  const ps = livePids();
+  $("#gauges").innerHTML = ps.length ? ps.map(p => `<div class="g"><div class="n">${PIDS[p][0]}</div><span class="v" id="pv${p}">–</span><span class="u">${PIDS[p][1]}</span></div>`).join("")
+    : `<p class="mut">Conectează-te ca să vezi parametrii disponibili.</p>`;
+}
+$("#bLive").onclick = async () => {
+  if (liveOn) { liveOn = false; return; }
+  const ps = livePids();
+  if (!ps.length) return toast("Niciun parametru disponibil (conectat? contact pus?)");
+  await run("Date live – apasă Oprește", async () => {
+    liveOn = true; $("#bLive").textContent = "Oprește"; $("#bLive").classList.add("bad");
+    csv = [["t", ...ps.map(p => PIDS[p][0] + " (" + PIDS[p][1] + ")")]];
+    const t0 = performance.now(); let n = 0;
+    try {
+      while (liveOn) {
+        const row = [((performance.now() - t0) / 1000).toFixed(2)];
+        for (const p of ps) {
+          if (!liveOn) break;
+          const v = await OBD.pid(elm, p);
+          const el = document.getElementById("pv" + p);
+          if (el) el.textContent = v == null ? "–" : v.toFixed(PIDS[p][4]);
+          row.push(v == null ? "" : v.toFixed(PIDS[p][4]));
+        }
+        csv.push(row); n++;
+        $("#liveHz").textContent = `${(n / ((performance.now() - t0) / 1000)).toFixed(1)} actualizări/s · ${csv.length - 1} rânduri înregistrate`;
+      }
+    } finally { liveOn = false; $("#bLive").textContent = "Pornește"; $("#bLive").classList.remove("bad"); }
+  });
+};
+$("#bCsv").onclick = async () => {
+  if (csv.length < 2) return toast("Pornește întâi datele live.");
+  try { await navigator.clipboard.writeText(csv.map(r => r.join(",")).join("\n")); toast("CSV copiat", true); } catch (e) { toast("Nu am putut copia"); }
+};
+
+// ---- Rateuri
+let misOn = false;
+function misHtml(r) {
+  if (!r) return `<p class="mut">DME-ul nu raportează contoare de rateuri (mode 06). Pune contactul / pornește motorul și reîncearcă.</p>`;
+  const max = Math.max(1, ...r.cyl.map(c => Math.max(c.cur || 0, c.avg || 0)));
+  const bar = v => `<div style="height:8px;border-radius:4px;background:var(--line);margin:4px 0 2px"><div style="height:8px;border-radius:4px;width:${Math.round(100 * (v || 0) / max)}%;background:${v ? "var(--bad)" : "var(--ok)"}"></div></div>`;
+  let h = r.cyl.map(c => `<div class="dtc"><div class="kv" style="border:0;padding:0"><span>Cilindrul ${c.n}</span><span><b style="font-size:18px;color:${c.cur ? "var(--bad)" : "var(--ok)"}">${c.cur ?? "–"}</b> <span class="mut">cursa curentă · medie 10 curse: ${c.avg ?? "–"}</span></span></div>${bar(c.cur)}</div>`).join("");
+  if (r.total) h += `<div class="kv"><span>Total motor</span><span>${r.total.cur ?? "–"} <span class="mut">· medie ${r.total.avg ?? "–"}</span></span></div>`;
+  const bad = r.cyl.filter(c => c.cur > 0);
+  h += `<p class="mut">${bad.length ? "Rateuri pe cilindrul " + bad.map(c => c.n).join(", ") + ". Compară bobinele/bujiile între cilindri." : "Niciun rateu în cursa curentă ✓"} · ${new Date().toLocaleTimeString()}</p>`;
+  return h;
+}
+$("#bMis").onclick = () => run("Citesc rateurile", async () => { $("#mis").innerHTML = misHtml(await OBD.misfires(elm)); });
+$("#bMisW").onclick = async () => {
+  if (misOn) { misOn = false; return; }
+  await run("Monitorizez rateurile – apasă Oprește", async () => {
+    misOn = true; $("#bMisW").textContent = "Oprește"; $("#bMisW").classList.add("bad");
+    try {
+      while (misOn) { const r = await OBD.misfires(elm); $("#mis").innerHTML = misHtml(r); if (!r) break; for (let i = 0; i < 20 && misOn; i++) await sleep(100); }
+    } finally { misOn = false; $("#bMisW").textContent = "Monitorizează"; $("#bMisW").classList.remove("bad"); }
+  });
+};
+
+// ---- Erori
+const gsearch = code => `https://www.google.com/search?q=${encodeURIComponent("BMW F36 cod eroare " + code)}`;
+function dtcHtml(list) {
+  if (!list.length) return `<p class="mut">Nicio eroare ✓</p>`;
+  return list.map(d => `<div class="dtc"><code>${d.code}</code>${d.active ? '<span class="tag a">activă</span>' : ""}${d.confirmed ? '<span class="tag c">confirmată</span>' : ""}${d.pending ? '<span class="tag">în așteptare</span>' : ""}${d.st !== undefined ? `<span class="mut"> st 0x${h2(d.st)}</span>` : ""}<a href="${gsearch(d.code)}" target="_blank" rel="noopener">caută</a></div>`).join("");
+}
+$("#bObdDtc").onclick = () => run("Citesc erorile motorului", async () => {
+  let h = "";
+  for (const [n, m] of [["Stocate", 3], ["În așteptare", 7], ["Permanente", 0x0A]]) {
+    const c = await OBD.dtcs(elm, m);
+    h += `<p class="mut" style="margin:10px 0 0">${n}</p>` + dtcHtml(c.map(code => ({ code })));
+  }
+  $("#obdDtc").innerHTML = h;
+});
+$("#bObdClr").onclick = async () => {
+  if (!await ask("Ștergi erorile motorului?", "Se șterg codurile OBD și se resetează monitoarele de pregătire (readiness).")) return;
+  run("Șterg", async () => { toast(await OBD.clear(elm) ? "Erori șterse" : "Fără răspuns", true); $("#obdDtc").innerHTML = ""; });
+};
+async function moduleCard(e) {
+  let body;
+  try { body = dtcHtml(await BMW.dtcs(elm, e)); } catch (x) { body = `<p class="mut">${esc(x.message)}</p>`; }
+  return `<div class="card mod" style="background:#12151b"><h3>0x${h2(e)} · ${ecuName(e)}<button class="btn bad" style="width:auto;margin:0;padding:6px 10px;font-size:13px" data-clr="${e}">Șterge</button></h3>${body}</div>`;
+}
+function bindClear(root) {
+  root.querySelectorAll("[data-clr]").forEach(b => b.onclick = async () => {
+    const e = +b.dataset.clr;
+    if (!await ask(`Ștergi erorile din ${ecuName(e)}?`, "Erorile active vor reapărea dacă problema persistă.")) return;
+    run("Șterg", async () => {
+      await BMW.clear(elm, e);
+      b.closest(".mod").outerHTML = await moduleCard(e);
+      bindClear(root);
+      toast("Șters din " + ecuName(e), true);
+    });
+  });
+}
+async function renderModuleDtcs(ecus, target) {
+  let h = "";
+  for (const e of ecus) {
+    setBusy(`Citesc erori ${ecuName(e)}…`);
+    h += await moduleCard(e);
+    target.innerHTML = h;
+  }
+  if (!ecus.length) target.innerHTML = `<p class="mut">Niciun modul nu a răspuns. Contact pus?</p>`;
+  bindClear(target);
+}
+$("#bAllDtc").onclick = () => run("Caut modulele", async () => {
+  const full = $("#fullDtc").checked;
+  const addrs = full ? [...Array(256).keys()] : Object.keys(ECU_NAMES).map(Number);
+  const found = await BMW.scan(elm, addrs, a => setBusy(`Caut modulele… 0x${h2(a)}`));
+  await renderModuleDtcs(found, $("#allDtc"));
+});
+
+// ---- Module
+async function scanModules(full) {
+  const addrs = full ? [...Array(256).keys()] : Object.keys(ECU_NAMES).map(Number);
+  const found = await BMW.scan(elm, addrs, a => setBusy(`Scanez 0x${h2(a)}`));
+  let h = "";
+  for (const e of found) {
+    setBusy(`Identific ${ecuName(e)}…`);
+    const id = await BMW.ident(elm, e);
+    h += `<div class="card mod" style="background:#12151b"><h3>0x${h2(e)} · ${ecuName(e)}</h3>` +
+      (Object.keys(id).length ? Object.entries(id).map(([k, v]) => `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join("") : `<p class="mut">fără date de identificare</p>`) + `</div>`;
+    $("#mods").innerHTML = h;
+  }
+  if (!found.length) $("#mods").innerHTML = `<p class="mut">Niciun modul nu a răspuns. Contact pus?</p>`;
+  log(`module găsite: ${found.map(x => "0x" + h2(x)).join(", ") || "-"}`);
+}
+$("#bScan").onclick = () => run("Scanez", () => scanModules(false));
+$("#bScanFull").onclick = () => run("Scanare completă", () => scanModules(true));
+
+// ---- Avansat
+$("#bDidRead").onclick = () => run("Citesc DID", async () => {
+  const v = await BMW.readDid(elm, num($("#dEcu").value), num($("#dDid").value));
+  $("#dOut").textContent = `HEX:   ${hex(v)}\nASCII: ${ascii(v)}\nLungime: ${v.length} octeți`;
+});
+$("#bUds").onclick = () => run("Trimit", async () => {
+  const req = fromHex($("#uHex").value);
+  if (!req.length || ![0x19, 0x22, 0x3E].includes(req[0])) throw new ElmError("Sunt permise doar citiri (19, 22, 3E). Aplicația nu scrie nimic în module.");
+  $("#uOut").textContent = hex(await elm.uds(num($("#uEcu").value), req));
+});
+$("#bLogCopy").onclick = async () => { try { await navigator.clipboard.writeText($("#logOut").textContent); toast("Copiat", true); } catch (e) { toast("Nu am putut copia"); } };
+$("#bLogClr").onclick = () => $("#logOut").textContent = "";
+buildGauges();
+</script>
+</body>
+</html>
