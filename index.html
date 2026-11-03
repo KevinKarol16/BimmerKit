@@ -46,13 +46,31 @@ pre{white-space:pre-wrap;word-break:break-all;background:#0f1217;border-radius:1
 #toast.ok{background:#11301f;border-color:var(--ok)}
 #modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
 #modal .card{max-width:420px;width:100%}
+.big{text-align:center;padding:4px 0}
+.big .n{font-size:13px;color:var(--mut)}
+.big .bv{font-size:68px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.05}
+.big .u{font-size:14px;color:var(--mut)}
+.rbar{height:16px;border-radius:8px;background:var(--line);overflow:hidden;margin:10px 0 4px}
+.rbar div{height:100%;width:0;background:var(--ok);transition:width .12s}
+.rbar.warm div{background:var(--warn)}
+.rbar.hot div{background:var(--bad)}
+.shift{animation:fl .2s steps(2) infinite}
+@keyframes fl{50%{opacity:.25}}
+.g.alert{border-color:var(--bad);background:#2a1214}
+.alertbox{border:1px solid var(--bad);background:#2a1214;color:#ffb4b6;border-radius:12px;padding:10px 12px;margin-bottom:12px;display:none;font-weight:600}
+.perfbig{font-size:60px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;margin:8px 0 2px}
+.hist{padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}.hist:last-child{border:0}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:8px 0}
+.meter div{height:100%}
 </style>
 </head>
 <body>
 <header><h1>Bimmer<b>Kit</b> F36</h1><span id="conn" class="pill">Neconectat</span></header>
 <nav id="tabs">
   <button data-t="con" class="act">Conectare</button>
+  <button data-t="dash">Bord</button>
   <button data-t="live">Live</button>
+  <button data-t="perf">0–100</button>
   <button data-t="err">Erori</button>
   <button data-t="mod">Module</button>
   <button data-t="adv">Avansat</button>
@@ -71,6 +89,33 @@ pre{white-space:pre-wrap;word-break:break-all;background:#0f1217;border-radius:1
     <h2>Mașină</h2>
     <div id="info"></div>
   </div>
+  <div class="card">
+    <h2>Baterie & alternator</h2>
+    <button class="btn" id="bBat">Verifică bateria</button>
+    <div id="bat"><p class="mut">Cu motorul oprit vezi cât de încărcată e bateria. Cu motorul pornit vezi dacă alternatorul încarcă.</p></div>
+  </div>
+</section>
+
+<section id="dash">
+  <div class="alertbox" id="dashAlert"></div>
+  <button class="btn" id="bDash">Pornește bordul</button>
+  <div class="card">
+    <div class="big"><div class="n">Turație</div><div class="bv" id="dRpm">–</div><span class="u">rpm</span></div>
+    <div class="rbar" id="dRpmBar"><div></div></div>
+    <div class="big"><div class="bv" id="dSpd" style="font-size:44px">–</div><span class="u">km/h</span></div>
+  </div>
+  <div class="grid">
+    <div class="g" id="gCool"><div class="n">Lichid răcire</div><span class="v" id="dCool">–</span><span class="u">°C</span></div>
+    <div class="g" id="gOil"><div class="n">Ulei</div><span class="v" id="dOil">–</span><span class="u">°C</span></div>
+    <div class="g" id="gVolt"><div class="n">Tensiune</div><span class="v" id="dVolt">–</span><span class="u">V</span></div>
+    <div class="g"><div class="n">Presiune turbo</div><span class="v" id="dBoost">–</span><span class="u">bar</span></div>
+    <div class="g"><div class="n">Sarcină motor</div><span class="v" id="dLoad">–</span><span class="u">%</span></div>
+    <div class="g"><div class="n">Aer admisie</div><span class="v" id="dIat">–</span><span class="u">°C</span></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <label>Shift light la (rpm)</label><input id="shiftRpm" type="number" inputmode="numeric" value="5500">
+    <p class="mut">Alerte cu vibrație: lichid de răcire ≥ 110 °C, ulei ≥ 130 °C, tensiune sub 12,5 V cu motorul pornit. Ecranul rămâne aprins cât rulează bordul.</p>
+  </div>
 </section>
 
 <section id="live">
@@ -82,6 +127,27 @@ pre{white-space:pre-wrap;word-break:break-all;background:#0f1217;border-radius:1
   <div class="row"><button class="btn" id="bLive">Pornește</button><button class="btn sec" id="bCsv">Copiază CSV</button></div>
   <p class="mut" id="liveHz"></p>
   <div class="grid" id="gauges"></div>
+</section>
+
+<section id="perf">
+  <div class="card">
+    <h2>Cronometru accelerare</h2>
+    <select id="pMode">
+      <option value="0-100">0–100 km/h</option>
+      <option value="60-100">60–100 km/h</option>
+      <option value="80-120">80–120 km/h</option>
+      <option value="100-200">100–200 km/h</option>
+    </select>
+    <button class="btn" id="bPerf">Armează cronometrul</button>
+    <div class="perfbig" id="pTime">0.00 s</div>
+    <p class="mut" id="pState" style="text-align:center">Alege proba și apasă Armează.</p>
+  </div>
+  <div class="card">
+    <h2>Cele mai bune timpi</h2>
+    <div id="pBest"></div>
+    <button class="btn sec" id="bPerfClr">Șterge rezultatele</button>
+  </div>
+  <div class="card warn"><p class="mut" style="margin:0">Folosește cronometrul doar pe circuit sau pe drum închis. Timpii sunt aproximativi: viteza vine prin OBD, de câteva ori pe secundă.</p></div>
 </section>
 
 <section id="err">
@@ -96,6 +162,16 @@ pre{white-space:pre-wrap;word-break:break-all;background:#0f1217;border-radius:1
     <button class="btn" id="bAllDtc">Citește erori din toate modulele</button>
     <label><input type="checkbox" id="fullDtc" style="width:auto"> scanare completă a adreselor (1–2 min)</label>
     <div id="allDtc"></div>
+  </div>
+  <div class="card">
+    <h2>Raport complet</h2>
+    <button class="btn" id="bReport">Generează raportul (motor + module)</button>
+    <div class="row"><button class="btn sec" id="bRepCopy">Copiază</button><button class="btn sec" id="bRepShare">Trimite</button></div>
+    <pre id="report">-</pre>
+  </div>
+  <div class="card">
+    <h2>Istoric scanări</h2>
+    <div id="hist"></div>
   </div>
 </section>
 
@@ -148,6 +224,51 @@ const eqb = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 const num = s => { const v = parseInt(String(s).trim(), String(s).trim().toLowerCase().startsWith("0x") ? 16 : 10); if (isNaN(v)) throw new ElmError("Număr invalid: " + s); return v; };
 const ascii = b => Array.from(b, c => c >= 32 && c < 127 ? String.fromCharCode(c) : "").join("");
 const HEX_LINE = /^(?:[0-9A-F]{2})+$/;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("bk_" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("bk_" + k, JSON.stringify(v)); } catch (e) {} },
+};
+let wakeLock = null, wakeUsers = 0;
+async function keepAwake(on) {
+  wakeUsers = Math.max(0, wakeUsers + (on ? 1 : -1));
+  try {
+    if (wakeUsers && !wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); }
+    else if (!wakeUsers && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) {}
+}
+function setRunBtn(sel, on, label) { const b = document.querySelector(sel); b.textContent = on ? "Oprește" : label; b.classList.toggle("bad", on); }
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+// descrieri pentru coduri OBD generice frecvente
+const DTC_RO = {
+  P0010:"Circuit actuator VANOS admisie", P0011:"Calare ax came admisie – avans prea mare (VANOS)", P0012:"Calare ax came admisie – întârziere prea mare (VANOS)",
+  P0013:"Circuit actuator VANOS evacuare", P0014:"Calare ax came evacuare – avans prea mare (VANOS)", P0015:"Calare ax came evacuare – întârziere prea mare",
+  P0016:"Corelație arbore cotit / ax came admisie (lanț distribuție?)", P0017:"Corelație arbore cotit / ax came evacuare",
+  P0030:"Încălzire sondă lambda 1 – circuit", P0036:"Încălzire sondă lambda 2 – circuit",
+  P0087:"Presiune combustibil în rampă prea mică", P0088:"Presiune combustibil în rampă prea mare",
+  P0101:"Debitmetru aer (MAF) – valori în afara intervalului", P0102:"Debitmetru aer (MAF) – semnal prea mic", P0103:"Debitmetru aer (MAF) – semnal prea mare",
+  P0106:"Senzor presiune admisie (MAP) – plauzibilitate", P0111:"Senzor temperatură aer admisie – plauzibilitate", P0113:"Senzor temperatură aer admisie – semnal mare",
+  P0116:"Senzor temperatură lichid răcire – plauzibilitate", P0117:"Senzor temperatură lichid răcire – semnal mic", P0118:"Senzor temperatură lichid răcire – semnal mare",
+  P0128:"Motorul se încălzește prea greu (termostat blocat deschis?)",
+  P0130:"Sondă lambda 1 – circuit", P0131:"Sondă lambda 1 – tensiune mică", P0132:"Sondă lambda 1 – tensiune mare", P0133:"Sondă lambda 1 – răspuns lent", P0134:"Sondă lambda 1 – fără activitate",
+  P0136:"Sondă lambda 2 (după catalizator) – circuit", P0137:"Sondă lambda 2 – tensiune mică", P0138:"Sondă lambda 2 – tensiune mare", P0139:"Sondă lambda 2 – răspuns lent", P0140:"Sondă lambda 2 – fără activitate",
+  P0171:"Amestec prea sărac (aer fals, injectoare, presiune benzină)", P0172:"Amestec prea bogat", P0174:"Amestec prea sărac – bancul 2", P0175:"Amestec prea bogat – bancul 2",
+  P0201:"Injector cilindrul 1 – circuit", P0202:"Injector cilindrul 2 – circuit", P0203:"Injector cilindrul 3 – circuit", P0204:"Injector cilindrul 4 – circuit", P0205:"Injector cilindrul 5 – circuit", P0206:"Injector cilindrul 6 – circuit",
+  P0234:"Suprapresiune turbo", P0236:"Senzor presiune turbo – plauzibilitate", P0299:"Presiune turbo insuficientă (furtun intercooler, wastegate)",
+  P0300:"Rateuri aleatorii / pe mai mulți cilindri", P0335:"Senzor arbore cotit – circuit", P0340:"Senzor ax came – circuit", P0365:"Senzor ax came evacuare – circuit",
+  P0380:"Bujii incandescente – circuit", P0401:"Debit EGR insuficient", P0403:"Supapă EGR – circuit",
+  P0420:"Eficiență catalizator sub prag", P0430:"Eficiență catalizator sub prag – bancul 2",
+  P0441:"Sistem recuperare vapori (EVAP) – debit incorect", P0455:"Scurgere mare EVAP (bușon rezervor?)", P0456:"Scurgere mică EVAP",
+  P0480:"Ventilator răcire – circuit", P0505:"Control ralanti", P0562:"Tensiune sistem prea mică", P0563:"Tensiune sistem prea mare",
+  P0600:"Eroare comunicare internă DME", P0606:"Procesor DME – defect", P0700:"Eroare în cutia automată (citește modulul EGS)",
+  P2002:"Eficiență filtru particule (DPF) sub prag", P2187:"Amestec sărac la ralanti", P2188:"Amestec bogat la ralanti", P2463:"Filtru particule (DPF) – prea multă funingine",
+};
+function dtcDesc(code) {
+  if (DTC_RO[code]) return DTC_RO[code];
+  let m = code.match(/^P030([1-9])$/); if (m) return `Rateuri detectate la cilindrul ${m[1]} (bobină, bujie, injector)`;
+  if (/^P[13]/.test(code)) return "Cod specific producătorului (BMW) – folosește «caută»";
+  return "";
+}
 
 class ElmError extends Error {}
 class NoResponse extends ElmError {}
@@ -466,13 +587,18 @@ const BMW = {
 // ============================================================ adaptor simulat (mod demo / teste)
 class MockTransport {
   constructor() {
-    this.out = ""; this.caf = true; this.cra = null; this.pending = null; this.txbuf = []; this.txlen = 0;
-    this.obdv = {0x04:[0x4D],0x05:[0x5A],0x0C:[0x0D,0x7A],0x0D:[0],0x0F:[0x3C],0x11:[0x10],0x2F:[0x80],0x42:[0x37,0xD8],0x46:[0x32],0x5C:[0x6E],0x0B:[0x24],0x10:[0x01,0x40],0x0E:[0x90]};
+    this.t0 = performance.now(); this.out = ""; this.caf = true; this.cra = null; this.pending = null; this.txbuf = []; this.txlen = 0;
+    this.obdv = {0x04:[0x4D],0x05:[0x5A],0x0C:[0x0D,0x7A],0x0D:[0],0x33:[0x64],0x0F:[0x3C],0x11:[0x10],0x2F:[0x80],0x42:[0x37,0xD8],0x46:[0x32],0x5C:[0x6E],0x0B:[0x24],0x10:[0x01,0x40],0x0E:[0x90]};
     this.dids = {0xF190: new TextEncoder().encode("WBA4D31060G000001"), 0xF187: fromHex("8631234"+"5"), 0xF189: fromHex("010203"), 0x3000: fromHex("0102030405060708")};
     this.ecus = new Set([0x12, 0x18, 0x29, 0x40, 0x60]);
     this.dtc = {0x12: [0x48,0x0A,0x00,0x2F, 0xA3,0x1B,0x00,0x08], 0x40: [0x80,0x41,0x81,0x09]};
   }
   async write(s) { await sleep(3); this.out = this.handle(s.trim().toUpperCase().replace(/ /g, "")); }
+  speed() {  // ciclu demo de 30 s: oprit 3 s, accelerare, apoi oprire
+    const t = ((performance.now() - this.t0) / 1000) % 30;
+    if (t < 3 || t >= 25) return 0;
+    return Math.round(Math.min(210, 210 * (1 - Math.exp(-(t - 3) / 10))));
+  }
   async readUntilPrompt() { await sleep(3); const o = this.out; this.out = ""; return o + "\r\r>"; }
   close() {}
   mask(base) {
@@ -496,8 +622,10 @@ class MockTransport {
     if (c.startsWith("01")) {
       const p = parseInt(c.slice(2), 16);
       if (this.obdv[p]) {
-        if (p === 0x0C) { const r = (780 + Math.round(Math.random() * 60)) * 4; this.obdv[0x0C] = [r >> 8, r & 0xFF]; }
-        if (p === 0x0D) this.obdv[0x0D] = [40 + Math.round(Math.random() * 10)];
+        const v = this.speed();
+        if (p === 0x0C) { const r = Math.round((v ? 1400 + (v * 45) % 4800 : 780 + Math.random() * 60) * 4); this.obdv[0x0C] = [r >> 8, r & 0xFF]; }
+        if (p === 0x0D) this.obdv[0x0D] = [v];
+        if (p === 0x0B) this.obdv[0x0B] = [v ? 100 + Math.round(Math.min(110, v)) : 0x24];
         return "41" + c.slice(2) + hex(this.obdv[p]);
       }
     }
@@ -554,7 +682,7 @@ class MockTransport {
 window.MockTransport = MockTransport;
 
 // ============================================================ UI
-let elm = null, busy = false, liveOn = false, csv = [];
+let elm = null, busy = false, liveOn = false, csv = [], dashOn = false, perfOn = false;
 function log(s) { const o = $("#logOut"); o.textContent += `[${new Date().toLocaleTimeString()}] ${s}\n`; if (o.textContent.length > 200000) o.textContent = o.textContent.slice(-150000); }
 function toast(s, ok) { const t = $("#toast"); t.textContent = ok ? s : s + "  (atinge pentru a închide)"; t.className = ok ? "ok" : ""; t.style.display = "block"; t.onclick = () => t.style.display = "none"; clearTimeout(t._h); if (ok) t._h = setTimeout(() => t.style.display = "none", 4500); else log("EROARE: " + s); }
 function setBusy(s) { const b = $("#busy"); b.textContent = s || ""; b.style.display = s ? "block" : "none"; }
@@ -581,7 +709,7 @@ function setConn(name) {
   $("#conn").textContent = name || "Neconectat"; $("#conn").className = "pill" + (name ? " on" : "");
   $("#bDisc").disabled = !name; $("#bConnect").disabled = $("#bDemo").disabled = !!name;
 }
-function onDisconnected() { liveOn = false; misOn = false; elm = null; setConn(null); toast("Adaptorul s-a deconectat."); log("deconectat"); }
+function onDisconnected() { liveOn = false; misOn = false; dashOn = false; perfOn = false; elm = null; setConn(null); toast("Adaptorul s-a deconectat."); log("deconectat"); }
 
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("act", x === b));
@@ -616,7 +744,7 @@ async function connectWith(t, name) {
 }
 $("#bConnect").onclick = () => connectWith(new BleTransport());
 $("#bDemo").onclick = () => connectWith(new MockTransport(), "Demo");
-$("#bDisc").onclick = () => { liveOn = false; misOn = false; if (elm) elm.t.close(); elm = null; setConn(null); };
+$("#bDisc").onclick = () => { liveOn = false; misOn = false; dashOn = false; perfOn = false; if (elm) elm.t.close(); elm = null; setConn(null); };
 $("#dbg").onchange = () => { if (elm) elm.debug = $("#dbg").checked; };
 
 // ---- Live
@@ -683,7 +811,7 @@ $("#bMisW").onclick = async () => {
 const gsearch = code => `https://www.google.com/search?q=${encodeURIComponent("BMW F36 cod eroare " + code)}`;
 function dtcHtml(list) {
   if (!list.length) return `<p class="mut">Nicio eroare ✓</p>`;
-  return list.map(d => `<div class="dtc"><code>${d.code}</code>${d.active ? '<span class="tag a">activă</span>' : ""}${d.confirmed ? '<span class="tag c">confirmată</span>' : ""}${d.pending ? '<span class="tag">în așteptare</span>' : ""}${d.st !== undefined ? `<span class="mut"> st 0x${h2(d.st)}</span>` : ""}<a href="${gsearch(d.code)}" target="_blank" rel="noopener">caută</a></div>`).join("");
+  return list.map(d => `<div class="dtc"><code>${d.code}</code>${d.active ? '<span class="tag a">activă</span>' : ""}${d.confirmed ? '<span class="tag c">confirmată</span>' : ""}${d.pending ? '<span class="tag">în așteptare</span>' : ""}${d.st !== undefined ? `<span class="mut"> st 0x${h2(d.st)}</span>` : ""}<a href="${gsearch(d.code)}" target="_blank" rel="noopener">caută</a>${dtcDesc(d.code) ? `<div class="mut">${esc(dtcDesc(d.code))}</div>` : ""}</div>`).join("");
 }
 $("#bObdDtc").onclick = () => run("Citesc erorile motorului", async () => {
   let h = "";
@@ -761,6 +889,193 @@ $("#bUds").onclick = () => run("Trimit", async () => {
 });
 $("#bLogCopy").onclick = async () => { try { await navigator.clipboard.writeText($("#logOut").textContent); toast("Copiat", true); } catch (e) { toast("Nu am putut copia"); } };
 $("#bLogClr").onclick = () => $("#logOut").textContent = "";
+
+// ---- Baterie & alternator
+const SOC = [[11.9, 0], [12.0, 10], [12.2, 50], [12.4, 75], [12.5, 90], [12.7, 100]];
+function socPct(v) {
+  if (v <= SOC[0][0]) return 0;
+  for (let i = 1; i < SOC.length; i++) if (v <= SOC[i][0]) { const [a, pa] = SOC[i - 1], [b, pb] = SOC[i]; return Math.round(pa + (pb - pa) * (v - a) / (b - a)); }
+  return 100;
+}
+function batHtml(v, running) {
+  if (isNaN(v)) return `<p class="mut">Nu am putut citi tensiunea.</p>`;
+  let msg, col, pct;
+  if (running) {
+    pct = Math.max(0, Math.min(100, (v - 12) / 3 * 100));
+    if (v > 15.0) { msg = "Tensiune prea mare – posibilă supraîncărcare (regulator alternator)."; col = "var(--bad)"; }
+    else if (v >= 13.5) { msg = "Alternatorul încarcă normal ✓"; col = "var(--ok)"; }
+    else if (v >= 12.6) { msg = "Încărcare redusă. La BMW e normal uneori (încărcare inteligentă); dacă rămâne așa cu farurile și clima pornite, verifică alternatorul."; col = "var(--warn)"; }
+    else { msg = "Alternatorul nu încarcă – verifică alternatorul / cureaua / senzorul IBS."; col = "var(--bad)"; }
+  } else {
+    pct = socPct(v);
+    msg = pct >= 75 ? `Baterie bine încărcată (~${pct}%) ✓` : pct >= 50 ? `Baterie parțial descărcată (~${pct}%) – un drum lung o reîncarcă.` : `Baterie descărcată (~${pct}%) – încarc-o cu redresorul sau verifică consumatorii.`;
+    col = pct >= 75 ? "var(--ok)" : pct >= 50 ? "var(--warn)" : "var(--bad)";
+  }
+  return `<div class="kv"><span>Tensiune</span><span><b style="font-size:20px;color:${col}">${v.toFixed(2)} V</b></span></div>
+    <div class="kv"><span>Motor</span><span>${running ? "pornit" : "oprit"}</span></div>
+    <div class="meter"><div style="width:${pct}%;background:${col}"></div></div>
+    <p style="margin:6px 0">${msg}</p>
+    <p class="mut">${running ? "Normal: 13,5–14,8 V." : "Cea mai exactă citire e la cel puțin o oră după oprire; cu contactul pus tensiunea scade puțin."}</p>`;
+}
+$("#bBat").onclick = () => run("Verific bateria", async () => {
+  const v = parseFloat(await elm.voltage());
+  let rpm = null; try { rpm = await OBD.pid(elm, 0x0C); } catch (e) {}
+  $("#bat").innerHTML = batHtml(v, rpm != null && rpm > 300);
+});
+
+// ---- Bord
+function setTile(id, gid, v, digits, bad) {
+  $(id).textContent = v == null ? "–" : v.toFixed(digits);
+  if (gid) $(gid).classList.toggle("alert", !!bad);
+}
+$("#shiftRpm").value = store.get("shift", 5500);
+$("#shiftRpm").onchange = () => store.set("shift", +$("#shiftRpm").value || 5500);
+function renderDash(v, prevAlerts) {
+  const rpm = v[0x0C], shift = +$("#shiftRpm").value || 5500;
+  $("#dRpm").textContent = rpm == null ? "–" : Math.round(rpm);
+  const bar = $("#dRpmBar");
+  bar.firstElementChild.style.width = rpm == null ? "0" : Math.min(100, rpm / (shift * 1.15) * 100) + "%";
+  bar.classList.toggle("warm", rpm >= shift * 0.85 && rpm < shift);
+  bar.classList.toggle("hot", rpm >= shift);
+  $("#dRpm").classList.toggle("shift", rpm >= shift);
+  $("#dRpm").style.color = rpm >= shift ? "var(--bad)" : "";
+  $("#dSpd").textContent = v[0x0D] == null ? "–" : Math.round(v[0x0D]);
+  const running = rpm > 300;
+  const al = [];
+  if (v[0x05] >= 110) al.push(`Lichid de răcire ${Math.round(v[0x05])} °C`);
+  if (v[0x5C] >= 130) al.push(`Ulei ${Math.round(v[0x5C])} °C`);
+  if (running && v[0x42] != null && v[0x42] < 12.5) al.push(`Tensiune mică: ${v[0x42].toFixed(1)} V`);
+  setTile("#dCool", "#gCool", v[0x05], 0, v[0x05] >= 110);
+  setTile("#dOil", "#gOil", v[0x5C], 0, v[0x5C] >= 130);
+  setTile("#dVolt", "#gVolt", v[0x42], 1, running && v[0x42] < 12.5);
+  setTile("#dBoost", null, v[0x0B] != null && v[0x33] != null ? (v[0x0B] - v[0x33]) / 100 : null, 2);
+  setTile("#dLoad", null, v[0x04], 0);
+  setTile("#dIat", null, v[0x0F], 0);
+  const box = $("#dashAlert");
+  box.style.display = al.length ? "block" : "none";
+  box.textContent = "⚠ " + al.join(" · ");
+  const key = al.join("|");
+  if (key && key !== prevAlerts) buzz([300, 150, 300]);
+  return key;
+}
+$("#bDash").onclick = async () => {
+  if (dashOn) { dashOn = false; return; }
+  const sup = window._sup || new Set();
+  if (!sup.size) return toast("Niciun parametru disponibil (conectat? contact pus?)");
+  await run("Bord live – apasă Oprește", async () => {
+    dashOn = true; setRunBtn("#bDash", true, "Pornește bordul"); keepAwake(true);
+    const fast = [0x0C, 0x0D].filter(p => sup.has(p));
+    const slow = [0x05, 0x5C, 0x42, 0x0B, 0x33, 0x04, 0x0F].filter(p => sup.has(p));
+    const vals = {}; let i = 0, prev = "", lastBuzz = 0;
+    try {
+      while (dashOn) {
+        for (const p of fast) { if (!dashOn) break; vals[p] = await OBD.pid(elm, p); }
+        if (slow.length && dashOn) { const p = slow[i++ % slow.length]; vals[p] = await OBD.pid(elm, p); }
+        prev = renderDash(vals, prev);
+        const shift = +$("#shiftRpm").value || 5500;
+        if (vals[0x0C] >= shift && performance.now() - lastBuzz > 1500) { buzz(80); lastBuzz = performance.now(); }
+        if (!fast.length) await sleep(200);
+      }
+    } finally { dashOn = false; setRunBtn("#bDash", false, "Pornește bordul"); keepAwake(false); }
+  });
+};
+
+// ---- Cronometru 0-100
+const crossT = (p, c, x) => !p || c.v === p.v ? c.t : p.t + (c.t - p.t) * (x - p.v) / (c.v - p.v);
+function renderBest() {
+  const all = store.get("perf", {});
+  const modes = Object.keys(all).filter(m => all[m].length);
+  $("#pBest").innerHTML = modes.length ? modes.map(m => {
+    const r = all[m].slice().sort((a, b) => a.t - b.t);
+    return `<div class="kv"><span>${m} km/h</span><span><b>${r[0].t.toFixed(2)} s</b> <span class="mut">· ${r.length} încercări · ultima ${all[m][0].t.toFixed(2)} s</span></span></div>`;
+  }).join("") : `<p class="mut">Încă nu ai rezultate.</p>`;
+}
+$("#bPerfClr").onclick = async () => { if (await ask("Ștergi toate rezultatele?", "Se șterg timpii salvați pe acest telefon.")) { store.set("perf", {}); renderBest(); } };
+$("#bPerf").onclick = async () => {
+  if (perfOn) { perfOn = false; return; }
+  const mode = $("#pMode").value, [a, b] = mode.split("-").map(Number);
+  const startX = a === 0 ? 0.5 : a;
+  await run("Cronometru armat – apasă Oprește", async () => {
+    perfOn = true; setRunBtn("#bPerf", true, "Armează cronometrul"); keepAwake(true);
+    $("#pMode").disabled = true;
+    let state = "arm", t0 = 0, prev = null;
+    const st = s => $("#pState").textContent = s;
+    $("#pTime").textContent = "0.00 s"; $("#pTime").style.color = "";
+    try {
+      while (perfOn) {
+        const v = await OBD.pid(elm, 0x0D), t = performance.now();
+        if (v == null) { st("Viteza nu poate fi citită."); await sleep(200); continue; }
+        if (state === "arm") {
+          if (v < startX) { state = "ready"; st(a === 0 ? "GATA – pleacă de pe loc!" : `GATA – accelerează peste ${a} km/h`); buzz(150); }
+          else st(a === 0 ? `Oprește complet mașina (acum ${v} km/h)` : `Coboară sub ${a} km/h (acum ${v} km/h)`);
+        } else if (state === "ready") {
+          if (v > startX) { t0 = crossT(prev, { v, t }, startX); state = "run"; st("Cronometrez…"); }
+        } else if (state === "run") {
+          if (v >= b) {
+            const res = (crossT(prev, { v, t }, b) - t0) / 1000;
+            $("#pTime").textContent = res.toFixed(2) + " s"; $("#pTime").style.color = "var(--ok)";
+            const all = store.get("perf", {}); const list = all[mode] || [];
+            const best = list.length ? Math.min(...list.map(x => x.t)) : Infinity;
+            list.unshift({ t: res, d: Date.now() }); all[mode] = list.slice(0, 30); store.set("perf", all); renderBest();
+            st(res < best ? `🏆 Record nou pentru ${mode} km/h!` : `Gata. Recordul tău: ${best.toFixed(2)} s`);
+            buzz([100, 80, 100, 80, 300]); log(`${mode} km/h: ${res.toFixed(2)} s`);
+            break;
+          }
+          if (v < startX) { state = "ready"; st("Încercare anulată – " + (a === 0 ? "pleacă din nou de pe loc" : `accelerează din nou peste ${a} km/h`)); $("#pTime").textContent = "0.00 s"; }
+          else $("#pTime").textContent = ((t - t0) / 1000).toFixed(2) + " s";
+        }
+        prev = { v, t };
+      }
+    } finally { perfOn = false; $("#pMode").disabled = false; setRunBtn("#bPerf", false, "Armează cronometrul"); keepAwake(false); }
+  });
+};
+renderBest();
+
+// ---- Raport complet & istoric
+async function buildReport() {
+  const L = [`Raport BimmerKit F36 – ${new Date().toLocaleString()}`, ""];
+  let vin = null; try { vin = await OBD.vin(elm); } catch (e) {}
+  L.push("VIN: " + (vin || "-"), "Baterie: " + await elm.voltage(), "");
+  let total = 0;
+  for (const [n, m] of [["Motor – stocate", 3], ["Motor – în așteptare", 7], ["Motor – permanente", 0x0A]]) {
+    const c = await OBD.dtcs(elm, m); total += c.length;
+    L.push(`${n}: ${c.length ? c.length : "nicio eroare"}`);
+    c.forEach(x => L.push(`  ${x}  ${dtcDesc(x)}`));
+  }
+  L.push("");
+  setBusy("Caut modulele…");
+  const found = await BMW.scan(elm, Object.keys(ECU_NAMES).map(Number));
+  for (const e of found) {
+    setBusy(`Citesc ${ecuName(e)}…`);
+    let d; try { d = await BMW.dtcs(elm, e); } catch (x) { L.push(`${ecuName(e)}: ${x.message}`); continue; }
+    total += d.length;
+    L.push(`${ecuName(e)}: ${d.length ? d.length + " erori" : "nicio eroare"}`);
+    d.forEach(x => L.push(`  ${x.code}${x.active ? " activă" : ""}${x.confirmed ? " confirmată" : ""}${x.pending ? " în așteptare" : ""}`));
+  }
+  if (!found.length) L.push("Modulele BMW nu au răspuns.");
+  L.push("", `Total erori: ${total}`);
+  return { vin, total, txt: L.join("\n") };
+}
+function renderHist() {
+  const h = store.get("hist", []);
+  $("#hist").innerHTML = h.length ? h.map((x, i) => `<div class="hist" data-i="${i}"><b>${new Date(x.d).toLocaleString()}</b> <span class="mut">· ${esc(x.vin || "fără VIN")} · ${x.total} erori</span></div>`).join("")
+    : `<p class="mut">Rapoartele generate se salvează aici, pe acest telefon.</p>`;
+  $("#hist").querySelectorAll(".hist").forEach(el => el.onclick = () => { $("#report").textContent = h[+el.dataset.i].txt; $("#report").scrollIntoView({ behavior: "smooth", block: "center" }); });
+}
+$("#bReport").onclick = () => run("Generez raportul", async () => {
+  const r = await buildReport();
+  $("#report").textContent = r.txt;
+  const h = store.get("hist", []); h.unshift({ d: Date.now(), vin: r.vin, total: r.total, txt: r.txt }); store.set("hist", h.slice(0, 20));
+  renderHist(); toast("Raport generat și salvat în istoric", true);
+});
+const reportText = () => { const t = $("#report").textContent; return t && t !== "-" ? t : null; };
+$("#bRepCopy").onclick = async () => { const t = reportText(); if (!t) return toast("Generează întâi raportul."); try { await navigator.clipboard.writeText(t); toast("Raport copiat", true); } catch (e) { toast("Nu am putut copia"); } };
+$("#bRepShare").onclick = async () => {
+  const t = reportText(); if (!t) return toast("Generează întâi raportul.");
+  if (navigator.share) { try { await navigator.share({ title: "Raport BimmerKit", text: t }); } catch (e) {} }
+  else { try { await navigator.clipboard.writeText(t); toast("Trimiterea nu e suportată aici – raportul a fost copiat", true); } catch (e) { toast("Nu am putut trimite"); } }
+};
+renderHist();
 buildGauges();
 </script>
 </body>
