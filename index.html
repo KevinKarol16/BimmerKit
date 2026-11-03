@@ -160,7 +160,7 @@ const BLE_SERVICES = [0xfff0, 0xffe0, 0x18f0, 0xffb0, 0xae30, 0xfee7, "e7810a71-
 
 class BleTransport {
   async connect() {
-    if (!navigator.bluetooth) throw new ElmError("Browserul nu are Bluetooth. Pe iPhone deschide pagina în aplicația gratuită Bluefy (App Store).");
+    if (!navigator.bluetooth) throw new ElmError("Acest browser nu suportă Bluetooth web. iPhone: deschide pagina în aplicația gratuită Bluefy (App Store), nu în Safari/Chrome. Android: folosește Chrome. Browser detectat: " + navigator.userAgent.slice(0, 90));
     this.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BLE_SERVICES });
     this.dev.addEventListener("gattserverdisconnected", () => onDisconnected());
     const server = await this.dev.gatt.connect();
@@ -551,7 +551,7 @@ window.MockTransport = MockTransport;
 // ============================================================ UI
 let elm = null, busy = false, liveOn = false, csv = [];
 function log(s) { const o = $("#logOut"); o.textContent += `[${new Date().toLocaleTimeString()}] ${s}\n`; if (o.textContent.length > 200000) o.textContent = o.textContent.slice(-150000); }
-function toast(s, ok) { const t = $("#toast"); t.textContent = s; t.className = ok ? "ok" : ""; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 4500); }
+function toast(s, ok) { const t = $("#toast"); t.textContent = ok ? s : s + "  (atinge pentru a închide)"; t.className = ok ? "ok" : ""; t.style.display = "block"; t.onclick = () => t.style.display = "none"; clearTimeout(t._h); if (ok) t._h = setTimeout(() => t.style.display = "none", 4500); else log("EROARE: " + s); }
 function setBusy(s) { const b = $("#busy"); b.textContent = s || ""; b.style.display = s ? "block" : "none"; }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function ask(title, text, typed) {
@@ -604,7 +604,7 @@ async function connectWith(t, name) {
     else toast("Conectat", true);
   } catch (e) {
     log("conectare eșuată: " + e.message);
-    if (e.name !== "NotFoundError") toast(e.message || String(e));
+    if (e.name !== "NotFoundError") toast((e.name && e.name !== "Error" && e.name !== "ElmError" ? e.name + ": " : "") + (e.message || String(e)));
     try { t.close(); } catch (x) {}
     elm = null; setConn(null);
   } finally { busy = false; setBusy(null); }
