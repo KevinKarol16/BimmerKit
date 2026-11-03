@@ -156,12 +156,17 @@ class UdsNegative extends ElmError { constructor(sid, nrc) { super(`serviciu 0x$
 
 // ============================================================ transport BLE
 // UUID-uri de serviciu folosite de adaptoarele OBD BLE (vLinker, Vgate, Veepeak, etc.)
-const BLE_SERVICES = [0xfff0, 0xffe0, 0x18f0, 0xffb0, 0xae30, 0xfee7, "e7810a71-73ae-499d-8c15-faa9aef0c3f2", "0000ffe5-0000-1000-8000-00805f9b34fb"];
+const BLE_SERVICES = [0xfff0, 0xffe0, 0x18f0, 0xffb0, 0xae30, 0xfee7].map(n => "0000" + n.toString(16) + "-0000-1000-8000-00805f9b34fb").concat(["e7810a71-73ae-499d-8c15-faa9aef0c3f2", "0000ffe5-0000-1000-8000-00805f9b34fb"]);
 
 class BleTransport {
   async connect() {
     if (!navigator.bluetooth) throw new ElmError("Acest browser nu suportă Bluetooth web. iPhone: deschide pagina în aplicația gratuită Bluefy (App Store), nu în Safari/Chrome. Android: folosește Chrome. Browser detectat: " + navigator.userAgent.slice(0, 90));
-    this.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BLE_SERVICES });
+    try { this.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BLE_SERVICES }); }
+    catch (e) {
+      if (e.name === "NotFoundError") throw e;
+      log("requestDevice cu servicii a eșuat (" + e.name + ": " + e.message + "), reîncerc fără filtru de servicii");
+      this.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+    }
     this.dev.addEventListener("gattserverdisconnected", () => onDisconnected());
     const server = await this.dev.gatt.connect();
     let services = [];
@@ -604,7 +609,7 @@ async function connectWith(t, name) {
     else toast("Conectat", true);
   } catch (e) {
     log("conectare eșuată: " + e.message);
-    if (e.name !== "NotFoundError") toast((e.name && e.name !== "Error" && e.name !== "ElmError" ? e.name + ": " : "") + (e.message || String(e)));
+    if (e.name !== "NotFoundError") toast("Conectare eșuată: " + (e.name && e.name !== "Error" && e.name !== "ElmError" ? e.name + ": " : "") + (e.message || String(e)));
     try { t.close(); } catch (x) {}
     elm = null; setConn(null);
   } finally { busy = false; setBusy(null); }
